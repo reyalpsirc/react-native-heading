@@ -43,6 +43,7 @@ RCT_REMAP_METHOD(start, start:(int)headingFilter resolver:(RCTPromiseResolveBloc
             headingFilter = 5;
         
         self.locManager.headingFilter = headingFilter;
+        [self.locManager startUpdatingLocation];
         [self.locManager startUpdatingHeading];
         resolve(@YES);
     } else {
@@ -51,11 +52,19 @@ RCT_REMAP_METHOD(start, start:(int)headingFilter resolver:(RCTPromiseResolveBloc
 }
 
 RCT_EXPORT_METHOD(stop) {
+    [self.locManager stopUpdatingLocation];
     [self.locManager stopUpdatingHeading];
 }
 
 - (NSArray<NSString *> *)supportedEvents {
     return @[@"headingUpdated"];
+}
+
+- (BOOL)locationManagerShouldDisplayHeadingCalibration:(CLLocationManager *)manager{
+    if(!manager.heading) return YES; // Got nothing, We can assume we got to calibrate.
+    else if(manager.heading.headingAccuracy < 0 ) return YES; // 0 means invalid heading, need to calibrate
+    else if(manager.heading.headingAccuracy > 15 ) return YES; // 5 degrees is a small value correct for my needs, too.
+    else return NO; // All is good. Compass is precise enough.
 }
 
 - (void)locationManager:(CLLocationManager *)manager didUpdateHeading:(CLHeading *)newHeading {
